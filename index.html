@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DailyTalk - English Diary & Speaking Practice</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
+    </style>
+</head>
+<body class="min-h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 flex flex-col">
+
+    <!-- Toast Notification Box -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 text-sm font-medium">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-msg">알림 메시지</span>
+    </div>
+
+    <!-- HEADER -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-6 py-4 flex items-center justify-between shrink-0 shadow-xs">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                <i class="fa-solid fa-book-open text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">DailyTalk</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400">AI 영작문 & 회화 코칭 플랫폼</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <!-- Streak Badge -->
+            <div class="flex items-center space-x-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-3 py-1.5 rounded-full text-amber-700 dark:text-amber-400 text-xs font-semibold shadow-xs">
+                <i class="fa-solid fa-fire text-amber-500 animate-pulse"></i>
+                <span id="streak-count">0</span>일 연속 🔥
+            </div>
+
+            <!-- Dark Mode Toggle -->
+            <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors">
+                <i id="theme-icon" class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN APP LAYOUT (Responsive Stack for Mobile) -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT COLUMN: Input & Controls (5 Cols on Desktop, Full on Mobile) -->
+        <section class="lg:col-span-5 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+            
+            <div class="p-4 md:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h2 class="font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-2 text-sm md:text-base">
+                    <i class="fa-solid fa-pen-nib text-blue-500"></i>
+                    <span>오늘의 일기 작성하기</span>
+                </h2>
+                <!-- Level Selector Tabs -->
+                <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
+                    <button onclick="setTargetLevel('beginner')" id="btn-lvl-beginner" class="px-2.5 py-1.5 rounded-lg transition-all bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs">초급</button>
+                    <button onclick="setTargetLevel('intermediate')" id="btn-lvl-intermediate" class="px-2.5 py-1.5 rounded-lg transition-all text-slate-600 dark:text-slate-400">중급</button>
+                </div>
+            </div>
+
+            <div class="p-4 md:p-5 flex-1 flex flex-col space-y-5">
+                
+                <!-- 🎀 큼직하고 시원하게 개선된 캘린더 위젯 🎀 -->
+                <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl space-y-3 w-full">
+                    <div class="flex items-center justify-between px-1">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs md:text-sm font-bold text-slate-700 dark:text-slate-200">🗓️ 달성 달력</span>
+                            <!-- 연월 드롭다운 -->
+                            <select id="month-select" onchange="changeCalendarMonth()" class="text-xs md:text-sm font-extrabold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-lg outline-none cursor-pointer">
+                                <!-- JS 동적 생성 -->
+                            </select>
+                        </div>
+                        <span id="challenge-progress-text" class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full">✨ 0/31일 (0%)</span>
+                    </div>
+
+                    <!-- 요일 헤더 -->
+                    <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 dark:text-slate-500 py-1">
+                        <div class="text-rose-400">일</div>
+                        <div>월</div>
+                        <div>화</div>
+                        <div>수</div>
+                        <div>목</div>
+                        <div>금</div>
+                        <div class="text-sky-400">토</div>
+                    </div>
+
+                    <!-- 캘린더 날짜 Grid (터치하기 좋게 높이와 폰트 확대) -->
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1.5 text-center">
+                        <!-- JS 생성 -->
+                    </div>
+                </div>
+
+                <!-- Preset Demo Buttons -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">추천 주제별 표현 불러오기</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="loadPreset('beginner', 1)" class="text-xs bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-3 py-2 rounded-xl font-medium transition-colors">
+                            ☕ 카페 & 여유
+                        </button>
+                        <button onclick="loadPreset('beginner', 2)" class="text-xs bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-3 py-2 rounded-xl font-medium transition-colors">
+                            🏃 운동 & 오운완
+                        </button>
+                        <button onclick="loadPreset('beginner', 3)" class="text-xs bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-3 py-2 rounded-xl font-medium transition-colors">
+                            🛍️ 쇼핑 & 지름신
+                        </button>
+                        <button onclick="loadPreset('intermediate', 1)" class="text-xs bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-xl font-medium transition-colors">
+                            💼 업무 & 회의
+                        </button>
+                        <button onclick="loadPreset('intermediate', 2)" class="text-xs bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-xl font-medium transition-colors">
+                            🌧️ 날씨 & 약속
+                        </button>
+                        <button onclick="loadPreset('intermediate', 3)" class="text-xs bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-xl font-medium transition-colors">
+                            ✈️ 여행 & 주말
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Textarea (모바일에서 넉넉하게 타이핑할 수 있도록 높이 확보) -->
+                <div class="flex flex-col space-y-1">
+                    <div class="flex justify-between items-center">
+                        <label for="diary-input" class="text-xs font-semibold text-slate-500 dark:text-slate-400">영어 일기 작성하기</label>
+                        <span id="char-count" class="text-xs text-slate-400">0자</span>
+                    </div>
+                    <textarea id="diary-input" oninput="updateCharCount()" rows="7" placeholder="오늘 하루 있었던 일이나 생각들을 자유롭게 영어로 적어보세요..." class="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base leading-relaxed"></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button onclick="analyzeDiary()" id="submit-btn" class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center space-x-2 text-sm md:text-base">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>교정 및 회화 변환 (AI 분석 시작)</span>
+                </button>
+            </div>
+
+            <!-- History Section -->
+            <div class="border-t border-slate-100 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-slate-950/30">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">작성한 문장 히스토리</h3>
+                    <span id="history-count" class="text-xs bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-400">0개</span>
+                </div>
+                <div id="history-list" class="space-y-2 max-h-36 overflow-y-auto pr-1">
+                    <p class="text-xs text-slate-400 italic text-center py-3">아직 작성된 히스토리가 없습니다.</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT COLUMN: Analysis & Results Card (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+            
+            <!-- Header Bar -->
+            <div class="p-4 md:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h2 class="font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-2 text-sm md:text-base">
+                    <i class="fa-solid fa-chart-line text-indigo-500"></i>
+                    <span>AI 코칭 및 회화 변환 결과</span>
+                </h2>
+                <div id="badge-level-display" class="hidden text-xs px-2.5 py-1 rounded-full font-semibold bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+                    목표 레벨: 초급
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="p-4 md:p-5 space-y-6">
+                
+                <!-- Initial Empty State -->
+                <div id="empty-state" class="flex flex-col items-center justify-center text-center py-12 px-4">
+                    <div class="w-16 h-16 bg-blue-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center text-blue-500 dark:text-blue-400 mb-4 shadow-inner">
+                        <i class="fa-solid fa-comments text-2xl"></i>
+                    </div>
+                    <h3 class="text-sm md:text-base font-bold text-slate-700 dark:text-slate-300 mb-1">일기를 입력하고 분석을 시작해보세요!</h3>
+                    <p class="text-xs text-slate-400 max-w-sm leading-relaxed">
+                        초급/중급 맞춤형 교정문, 상세한 문법/표현 해설, 원어민 추천 표현, 그리고 실전 스피킹 스크립트를 제공합니다.
+                    </p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loading-state" class="hidden flex flex-col items-center justify-center text-center py-16">
+                    <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <h3 class="text-xs md:text-sm font-bold text-slate-700 dark:text-slate-300 animate-pulse">AI가 일기를 분석하고 원어민 표현으로 다듬는 중입니다...</h3>
+                </div>
+
+                <!-- Result Content Container -->
+                <div id="result-content" class="hidden space-y-6">
+                    
+                    <!-- 1. Original Text Card -->
+                    <div class="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Original Text (작성한 원문)</span>
+                        <p id="res-original" class="text-xs md:text-sm text-slate-700 dark:text-slate-300 italic"></p>
+                    </div>
+
+                    <!-- 2. Dual-Level Corrected / Polished Comparison -->
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-sparkles"></i>
+                            <span>레벨별 교정 및 업그레이드 버전 비교</span>
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 gap-4">
+                            <!-- Beginner Polished Version -->
+                            <div class="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 flex flex-col justify-between space-y-2">
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-[11px] font-bold px-2.5 py-1 rounded">🌱 초급 (Beginner Friendly)</span>
+                                        <button onclick="copyToClipboard('res-beginner-text')" class="text-xs text-slate-400 hover:text-blue-600 p-1"><i class="fa-solid fa-copy text-sm"></i></button>
+                                    </div>
+                                    <p id="res-beginner-text" class="text-xs md:text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed"></p>
+                                </div>
+                                <p id="res-beginner-tip" class="text-[11px] text-slate-500 dark:text-slate-400 border-t border-blue-100 dark:border-blue-900/30 pt-2"></p>
+                            </div>
+
+                            <!-- Intermediate Polished Version -->
+                            <div class="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/50 rounded-xl p-4 flex flex-col justify-between space-y-2">
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold px-2.5 py-1 rounded">🚀 중급 (Intermediate Upgraded)</span>
+                                        <button onclick="copyToClipboard('res-inter-text')" class="text-xs text-slate-400 hover:text-indigo-600 p-1"><i class="fa-solid fa-copy text-sm"></i></button>
+                                    </div>
+                                    <p id="res-inter-text" class="text-xs md:text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed"></p>
+                                </div>
+                                <p id="res-inter-tip" class="text-[11px] text-slate-500 dark:text-slate-400 border-t border-indigo-100 dark:border-indigo-900/30 pt-2"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Detailed Korean Explanation -->
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-xs">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-circle-question text-amber-500"></i>
+                            <span>왜 이렇게 수정되었나요? (문법 및 뉘앙스 해설)</span>
+                        </h3>
+                        <div id="res-explanations" class="space-y-2 text-xs text-slate-600 dark:text-slate-300"></div>
+                    </div>
+
+                    <!-- 4. Native Speaker Recommended Expressions -->
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-xs">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-star text-amber-500"></i>
+                            <span>원어민 추천 필수 표현 (Idioms & Phrasal Verbs)</span>
+                        </h3>
+                        <div id="res-expressions" class="grid grid-cols-1 gap-3"></div>
+                    </div>
+
+                    <!-- 5. Conversational Speaking Script -->
+                    <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+                                <i class="fa-solid fa-headphones text-emerald-500"></i>
+                                <span>실전 스피킹 스크립트 (Roleplay & TTS)</span>
+                            </h3>
+                            <label class="flex items-center space-x-1.5 text-xs text-slate-500 cursor-pointer select-none">
+                                <input type="checkbox" id="toggle-roleplay" onchange="toggleRoleplayMode()" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4">
+                                <span class="font-semibold text-amber-600 dark:text-amber-400">🎭 B 답변 가리기 (역할극 모드)</span>
+                            </label>
+                        </div>
+
+                        <div id="res-script" class="space-y-3"></div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        let currentLevel = 'beginner';
+        let historyData = [];
+        let isRoleplayActive = false;
+        let monthlyChallengeData = {}; 
+        let currentSelectedYear = 2026;
+        let currentSelectedMonth = 10;
+
+        const presets = {
+            beginner: {
+                1: "Today I went to a nice cafe with my friend. We drank iced americano and ate chocolate cake. The weather was very good so we walked in the park for one hour. I felt so happy and relaxed.",
+                2: "After work, I went to the gym. I ran on the treadmill for thirty minutes and lifted some light weights. It was a bit tiring, but I feel refreshed now. I want to sleep early tonight.",
+                3: "I bought a nice new jacket online today. It was on sale, so I got a really good price. I can't wait to wear it this weekend when I meet my friends."
+            },
+            intermediate: {
+                1: "Today, I had a crucial team meeting where I pitched my new project proposal. Although I was a bit nervous at first, I managed to articulate my points clearly and received constructive feedback from my manager. It turned out to be a productive session.",
+                2: "On my way home, it started pouring cats and dogs out of nowhere. I didn't bring an umbrella, so I had to duck into a cozy bookstore to wait it out. Ironically, browsing through the shelves ended up being a peaceful escape from my hectic day.",
+                3: "I'm planning a quick weekend getaway to the beach to get away from the hustle and bustle of city life. I really need some time to recharge my batteries and enjoy fresh seafood."
+            }
+        };
+
+        window.onload = function() {
+            const savedHistory = localStorage.getItem('dailytalk_history');
+            if (savedHistory) {
+                try {
+                    historyData = JSON.parse(savedHistory);
+                    renderHistory();
+                } catch(e) {}
+            }
+
+            const savedChallenge = localStorage.getItem('dailytalk_monthly_challenge');
+            if (savedChallenge) {
+                try {
+                    monthlyChallengeData = JSON.parse(savedChallenge);
+                } catch(e) {}
+            } else {
+                monthlyChallengeData = {
+                    '2026-10': [1, 2, 3]
+                };
+            }
+
+            initMonthDropdown();
+            renderCalendarGrid();
+        };
+
+        function initMonthDropdown() {
+            const select = document.getElementById('month-select');
+            select.innerHTML = '';
+
+            const startYear = 2026, startMonth = 10;
+            const endYear = 2027, endMonth = 12;
+
+            for (let y = startYear; y <= endYear; y++) {
+                const mStart = (y === startYear) ? startMonth : 1;
+                const mEnd = (y === endYear) ? endMonth : 12;
+
+                for (let m = mStart; m <= mEnd; m++) {
+                    const opt = document.createElement('option');
+                    const monthStr = m < 10 ? `0${m}` : `${m}`;
+                    opt.value = `${y}-${monthStr}`;
+                    opt.innerText = `${y}.${m}`;
+                    if (y === 2026 && m === 10) opt.selected = true;
+                    select.appendChild(opt);
+                }
+            }
+        }
+
+        function changeCalendarMonth() {
+            const val = document.getElementById('month-select').value;
+            const [y, m] = val.split('-').map(Number);
+            currentSelectedYear = y;
+            currentSelectedMonth = m;
+            renderCalendarGrid();
+        }
+
+        function renderCalendarGrid() {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            const key = `${currentSelectedYear}-${currentSelectedMonth < 10 ? '0' + currentSelectedMonth : currentSelectedMonth}`;
+            const completedDays = monthlyChallengeData[key] || [];
+
+            const firstDayIndex = new Date(currentSelectedYear, currentSelectedMonth - 1, 1).getDay(); 
+            const totalDays = new Date(currentSelectedYear, currentSelectedMonth, 0).getDate();
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                grid.innerHTML += `<div class="h-8 md:h-7 bg-transparent"></div>`;
+            }
+
+            let completedCount = 0;
+            for (let day = 1; day <= totalDays; day++) {
+                const isCompleted = completedDays.includes(day);
+                if (isCompleted) completedCount++;
+
+                if (isCompleted) {
+                    grid.innerHTML += `<div title="${day}일 완료!" onclick="toggleDayStatus(${day})" class="h-8 md:h-7 bg-emerald-500 text-white rounded-xl flex items-center justify-center text-xs md:text-[11px] font-extrabold shadow-2xs cursor-pointer transition-transform hover:scale-105">
+                        🌱
+                    </div>`;
+                } else {
+                    grid.innerHTML += `<div title="${day}일 미달성" onclick="toggleDayStatus(${day})" class="h-8 md:h-7 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center text-xs font-semibold cursor-pointer transition-transform hover:scale-105 hover:bg-emerald-100 dark:hover:bg-emerald-950">${day}</div>`;
+                }
+            }
+
+            const pct = Math.round((completedCount / totalDays) * 100);
+            document.getElementById('challenge-progress-text').innerText = `✨ ${completedCount}/${totalDays}일 (${pct}%)`;
+            document.getElementById('streak-count').innerText = completedCount;
+        }
+
+        function toggleDayStatus(day) {
+            const key = `${currentSelectedYear}-${currentSelectedMonth < 10 ? '0' + currentSelectedMonth : currentSelectedMonth}`;
+            if (!monthlyChallengeData[key]) monthlyChallengeData[key] = [];
+
+            const idx = monthlyChallengeData[key].indexOf(day);
+            if (idx > -1) {
+                monthlyChallengeData[key].splice(idx, 1);
+            } else {
+                monthlyChallengeData[key].push(day);
+            }
+
+            localStorage.setItem('dailytalk_monthly_challenge', JSON.stringify(monthlyChallengeData));
+            renderCalendarGrid();
+        }
+
+        function markTodayComplete() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1;
+            const day = today.getDate();
+
+            const key = `${year}-${month < 10 ? '0' + month : month}`;
+            if (!monthlyChallengeData[key]) monthlyChallengeData[key] = [];
+
+            if (!monthlyChallengeData[key].includes(day)) {
+                monthlyChallengeData[key].push(day);
+                localStorage.setItem('dailytalk_monthly_challenge', JSON.stringify(monthlyChallengeData));
+            }
+            renderCalendarGrid();
+        }
+
+        function setTargetLevel(lvl) {
+            currentLevel = lvl;
+            const btnB = document.getElementById('btn-lvl-beginner');
+            const btnI = document.getElementById('btn-lvl-intermediate');
+            const badge = document.getElementById('badge-level-display');
+
+            if (lvl === 'beginner') {
+                btnB.className = "px-3.5 py-1.5 rounded-lg transition-all bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs";
+                btnI.className = "px-3.5 py-1.5 rounded-lg transition-all text-slate-600 dark:text-slate-400";
+                badge.innerText = "목표 레벨: 초급";
+            } else {
+                btnI.className = "px-3.5 py-1.5 rounded-lg transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs";
+                btnB.className = "px-3.5 py-1.5 rounded-lg transition-all text-slate-600 dark:text-slate-400";
+                badge.innerText = "목표 레벨: 중급";
+            }
+            showToast(`레벨이 [${lvl === 'beginner' ? '초급' : '중급'}]으로 설정되었습니다.`);
+        }
+
+        function loadPreset(lvl, num) {
+            setTargetLevel(lvl);
+            const text = presets[lvl][num];
+            document.getElementById('diary-input').value = text;
+            updateCharCount();
+            showToast('추천 데모 일기가 입력되었습니다.');
+        }
+
+        function updateCharCount() {
+            const val = document.getElementById('diary-input').value;
+            document.getElementById('char-count').innerText = `${val.length}자`;
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                icon.className = "fa-solid fa-sun";
+            } else {
+                icon.className = "fa-solid fa-moon";
+            }
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = msg;
+            toastIcon.className = isError ? "fa-solid fa-circle-exclamation text-red-400" : "fa-solid fa-circle-check text-emerald-400";
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('클립보드에 복사되었습니다!');
+            } catch (err) {
+                showToast('복사에 실패했습니다.', true);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) {
+                showToast('이 브라우저는 음성 재생을 지원하지 않습니다.', true);
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+            showToast('음성을 재생합니다.');
+        }
+
+        function toggleRoleplayMode() {
+            isRoleplayActive = document.getElementById('toggle-roleplay').checked;
+            const bAnswers = document.querySelectorAll('.roleplay-b-answer');
+            bAnswers.forEach(el => {
+                if (isRoleplayActive) {
+                    el.classList.add('blur-sm', 'select-none', 'bg-slate-200', 'dark:bg-slate-800');
+                    el.title = "클릭하여 정답 확인";
+                } else {
+                    el.classList.remove('blur-sm', 'select-none', 'bg-slate-200', 'dark:bg-slate-800');
+                    el.title = "";
+                }
+            });
+            showToast(isRoleplayActive ? '역할극 모드 활성화 (B 답변이 가려집니다)' : '역할극 모드 해제');
+        }
+
+        function saveToHistory(originalText) {
+            const entry = {
+                text: originalText,
+                date: new Date().toLocaleDateString()
+            };
+            historyData.unshift(entry);
+            if (historyData.length > 10) historyData.pop();
+            localStorage.setItem('dailytalk_history', JSON.stringify(historyData));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            const count = document.getElementById('history-count');
+            count.innerText = `${historyData.length}개`;
+
+            if (historyData.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-3">아직 작성된 히스토리가 없습니다.</p>`;
+                return;
+            }
+
+            list.innerHTML = '';
+            historyData.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = "p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-content space-x-2 shadow-2xs hover:border-blue-400 cursor-pointer transition-colors";
+                div.innerHTML = `
+                    <div class="truncate pr-2 text-slate-700 dark:text-slate-300 font-medium flex-1">
+                        <span class="text-slate-400 mr-1.5">${item.date}</span> ${item.text}
+                    </div>
+                    <button onclick="loadHistoryItem(${idx})" class="text-blue-600 hover:text-blue-700 font-semibold shrink-0">불러오기</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function loadHistoryItem(idx) {
+            const item = historyData[idx];
+            if (item) {
+                document.getElementById('diary-input').value = item.text;
+                updateCharCount();
+                showToast('히스토리 문장을 불러왔습니다.');
+                window.scrollTo({ top: 300, behavior: 'smooth' });
+            }
+        }
+
+        async function analyzeDiary() {
+            const input = document.getElementById('diary-input').value.trim();
+            if (!input) {
+                showToast('분석할 영어 일기를 입력해주세요!', true);
+                return;
+            }
+
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('result-content').classList.add('hidden');
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('badge-level-display').classList.remove('hidden');
+
+            setTimeout(() => {
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('result-content').classList.remove('hidden');
+
+                document.getElementById('res-original').innerText = input;
+
+                document.getElementById('res-beginner-text').innerText = "Today, I spent a wonderful time with my good friend. We went to a nice cafe, drank sweet coffee, and walked outside together. I felt very happy and relaxed all day.";
+                document.getElementById('res-beginner-tip').innerText = "💡 초급 팁: 기본적인 문장 구조(S+V+O)를 유지하면서 일상 표현을 정확하게 전달하도록 교정했습니다.";
+
+                document.getElementById('res-inter-text').innerText = "Today, I had a fantastic time catching up with my close friend. We dropped by a cozy cafe to grab some drinks and took a long, refreshing stroll in the park. It was a truly delightful and unwinding day.";
+                document.getElementById('res-inter-tip').innerText = "💡 중급 팁: 'catching up', 'drop by', 'unwinding' 같은 원어민 스러운 구동사와 고급 어휘를 활용해 세련되게 다듬었습니다.";
+
+                const expContainer = document.getElementById('res-explanations');
+                expContainer.innerHTML = `
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+                        <strong class="text-blue-600 dark:text-blue-400">1. went to a nice cafe -> dropped by a cozy cafe:</strong> 단순 이동 표현 대신 '잠깐 들르다'라는 의미의 구동사 <strong>drop by</strong>와 아늑한 느낌의 <strong>cozy</strong>를 사용하면 더욱 자연스럽습니다.
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+                        <strong class="text-blue-600 dark:text-blue-400">2. felt so happy and relaxed -> unwinding / recharge:</strong> 휴식을 취하며 긴장이 풀린 상태를 표현할 때 <strong>unwind</strong>라는 표현이 원어민 대화에서 매우 자주 쓰입니다.
+                    </div>
+                `;
+
+                const exprContainer = document.getElementById('res-expressions');
+                exprContainer.innerHTML = `
+                    <div class="p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40">
+                        <div class="font-bold text-amber-700 dark:text-amber-400 text-xs mb-1">Catch up (회포를 풀다 / 안부를 나누다)</div>
+                        <p class="text-xs text-slate-600 dark:text-slate-300">"It's great to catch up with you." (너와 안부를 나누니 정말 좋다.)</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40">
+                        <div class="font-bold text-amber-700 dark:text-amber-400 text-xs mb-1">Unwind (긴장을 풀고 쉬다)</div>
+                        <p class="text-xs text-slate-600 dark:text-slate-300">"I like to unwind by listening to music." (나는 음악을 들으며 긴장을 푸는 것을 좋아한다.)</p>
+                    </div>
+                `;
+
+                const scriptContainer = document.getElementById('res-script');
+                scriptContainer.innerHTML = `
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start justify-between space-x-3">
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded">A (Friend)</span>
+                            <p class="text-xs md:text-sm text-slate-800 dark:text-slate-200 font-medium">How was your day? Did you do anything special today?</p>
+                        </div>
+                        <button onclick="speakText('How was your day? Did you do anything special today?')" class="text-slate-400 hover:text-blue-600 p-2 shrink-0"><i class="fa-solid fa-volume-high text-base"></i></button>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start justify-between space-x-3">
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded">B (You)</span>
+                            <p class="text-xs md:text-sm text-slate-800 dark:text-slate-200 font-medium roleplay-b-answer cursor-pointer" onclick="this.classList.remove('blur-sm', 'select-none', 'bg-slate-200', 'dark:bg-slate-800')">I went to a cozy cafe with my close friend and took a relaxing walk in the park.</p>
+                        </div>
+                        <button onclick="speakText('I went to a cozy cafe with my close friend and took a relaxing walk in the park.')" class="text-slate-400 hover:text-emerald-600 p-2 shrink-0"><i class="fa-solid fa-volume-high text-base"></i></button>
+                    </div>
+                `;
+
+                if (isRoleplayActive) {
+                    toggleRoleplayMode();
+                }
+
+                saveToHistory(input);
+                markTodayComplete();
+                showToast('AI 분석 및 코칭이 완료되었습니다!');
+            }, 1200);
+        }
+    </script>
+</body>
+</html>
